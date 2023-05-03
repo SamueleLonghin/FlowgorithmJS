@@ -7,10 +7,6 @@
   <script src="lib/jquery-3.5.0.min.js"></script>
   <script src="flowgorithm.js?016"></script>
   <script>
-
-    const button = document.querySelector('button');
-    const pre = document.querySelector('pre');
-
     const openDirectory = async (mode = "read") => {
       // Feature detection. The API needs to be supported
       // and the app not run in an iframe.
@@ -89,10 +85,8 @@
     var xml;
     function loadFile(file) {
       var reader = new FileReader();
-      reader.onloadend = (event) => {
-        console.log("ETR: ", event.target.result)
+      reader.onloadend = () => {
         xml = reader.result;
-
         xml = xml.replace(/[\s\S]+<\?xml/, '<?xml');
         xml = xml.replace(/office:document\-meta>[\s\S]+/, 'office:document-meta>');
         id = "f" + c++
@@ -107,8 +101,6 @@
         node.appendChild(frame)
         document.getElementById("container").appendChild(node);
 
-        console.log(xml)
-        console.log(id)
         // console.log($($.parseXML(xml)))
         drawFlowchartFromSource(xml, '#' + id, config);
         // $('#choose').removeClass('big');
@@ -120,46 +112,24 @@
       }
     }
     var carica = async () => {
-      // Prompt user to select any serial port.
-      // const port = await navigator.serial.requestPort();
-
-      // // Wait for the serial port to open.
-      // await port.open({ baudRate: 9600 });
 
       const filesInDirectory = await openDirectory();
       if (!filesInDirectory) {
         return;
       }
-      Array.from(filesInDirectory).forEach((file) => {
-        console.log(`${file.name}\n`)
-        loadFile(file)
-      })
+      Array.from(filesInDirectory).forEach(loadFile)
     }
-    //button.addEventListener('click', carica);
 
 
 
 
   </script>
-  <style>
-    h1 {
-      font-size: 1.2em
-    }
-
-    div.f {
-      width: 49%;
-      float: left;
-      position: relative
-    }
-  </style>
 </head>
 
 <body>
   <h1>FlowgorithmJS - Example of use</h1>
   <button onclick="carica()"> Carica cartella</button>
-  <pre></pre>
   <div id="container">
-   
   </div>
 </body>
 
