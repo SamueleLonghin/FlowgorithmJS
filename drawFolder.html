@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>FlowgorithmJS offline</title>
+  <meta charset="utf-8">
+  <script src="lib/jquery-3.5.0.min.js"></script>
+  <script src="flowgorithm.js?016"></script>
+  <script>
+
+    const button = document.querySelector('button');
+    const pre = document.querySelector('pre');
+
+    const openDirectory = async (mode = "read") => {
+      // Feature detection. The API needs to be supported
+      // and the app not run in an iframe.
+      const supportsFileSystemAccess =
+        "showDirectoryPicker" in window &&
+        (() => {
+          try {
+            return window.self === window.top;
+          } catch {
+            return false;
+          }
+        })();
+      // If the File System Access API is supported…
+      if (supportsFileSystemAccess) {
+        let directoryStructure = undefined;
+
+        const getFiles = async (dirHandle, path = dirHandle.name) => {
+          const dirs = [];
+          const files = [];
+          for await (const entry of dirHandle.values()) {
+            const nestedPath = `${path}/${entry.name}`;
+            if (entry.kind === "file") {
+              files.push(
+                entry.getFile().then((file) => {
+                  file.directoryHandle = dirHandle;
+                  file.handle = entry;
+                  return Object.defineProperty(file, "webkitRelativePath", {
+                    configurable: true,
+                    enumerable: true,
+                    get: () => nestedPath,
+                  });
+                })
+              );
+            } else if (entry.kind === "directory") {
+              dirs.push(getFiles(entry, nestedPath));
+            }
+          }
+          return [
+            ...(await Promise.all(dirs)).flat(),
+            ...(await Promise.all(files)),
+          ];
+        };
+
+        try {
+          const handle = await showDirectoryPicker({
+            mode,
+          });
+          directoryStructure = getFiles(handle, undefined);
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            console.error(err.name, err.message);
+          }
+        }
+        return directoryStructure;
+      }
+      // Fallback if the File System Access API is not supported.
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.webkitdirectory = true;
+
+        input.addEventListener('change', () => {
+          let files = Array.from(input.files);
+          resolve(files);
+        });
+        if ('showPicker' in HTMLInputElement.prototype) {
+          input.showPicker();
+        } else {
+          input.click();
+        }
+      });
+    };
+
+    var c = 0
+    var config = {};
+    var xml;
+    function loadFile(file) {
+      var reader = new FileReader();
+      reader.onloadend = (event) => {
+        console.log("ETR: ", event.target.result)
+        xml = reader.result;
+
+        xml = xml.replace(/[\s\S]+<\?xml/, '<?xml');
+        xml = xml.replace(/office:document\-meta>[\s\S]+/, 'office:document-meta>');
+        id = "f" + c++
+        name = file.name
+
+        const node = document.createElement("div");
+        const frame = document.createElement("div")
+        const title = document.createElement("h3");
+        frame.setAttribute('id',id)
+        title.innerHTML = name
+        node.appendChild(title)
+        node.appendChild(frame)
+        document.getElementById("container").appendChild(node);
+
+        console.log(xml)
+        console.log(id)
+        // console.log($($.parseXML(xml)))
+        drawFlowchartFromSource(xml, '#' + id, config);
+        // $('#choose').removeClass('big');
+        // $('body').addClass('view');
+        // $('title').text($('#f div.title').text());
+      };
+      if (file) {
+        reader.readAsText(file);
+      }
+    }
+    var carica = async () => {
+      // Prompt user to select any serial port.
+      // const port = await navigator.serial.requestPort();
+
+      // // Wait for the serial port to open.
+      // await port.open({ baudRate: 9600 });
+
+      const filesInDirectory = await openDirectory();
+      if (!filesInDirectory) {
+        return;
+      }
+      Array.from(filesInDirectory).forEach((file) => {
+        console.log(`${file.name}\n`)
+        loadFile(file)
+      })
+    }
+    //button.addEventListener('click', carica);
+
+
+
+
+  </script>
+  <style>
+    h1 {
+      font-size: 1.2em
+    }
+
+    div.f {
+      width: 49%;
+      float: left;
+      position: relative
+    }
+  </style>
+</head>
+
+<body>
+  <h1>FlowgorithmJS - Example of use</h1>
+  <button onclick="carica()"> Carica cartella</button>
+  <pre></pre>
+  <div id="container">
+   
+  </div>
+</body>
+
+</html>
